@@ -201,21 +201,32 @@ __END__
 
 App::mimi - Migrations for small home projects
 
-=head1 SYNOPSIS
-
 =head1 DESCRIPTION
+
+You want to look at C<script/mimi> documentation instead. This is just an
+implementation.
 
 =head1 METHODS
 
 =head2 C<new>
 
+Creates new object. Duh.
+
 =head2 C<fix>
+
+Fixes last error migration by changing its status to C<success>.
 
 =head2 C<migrate>
 
+Finds the last migration number and runs all provided files with greater number.
+
 =head2 C<set>
 
+Manually set the last migration.
+
 =head2 C<setup>
+
+Creates migration table.
 
 =head1 AUTHOR
 
