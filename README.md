@@ -1,39 +1,106 @@
-# NAME
+#!/usr/bin/env perl
 
-App::mimi - Migrations for small home projects
+use strict;
+use warnings;
 
-# DESCRIPTION
+use Carp qw(croak);
+use Docopt;
+use App::mimi;
 
-You want to look at `script/mimi` documentation instead. This is just an
-implementation.
+my $opts = docopt();
 
-# METHODS
+my $command;
+for (qw(setup migrate fix set)) {
+    if ($opts->{$_}) {
+        $command = $_;
+        last;
+    }
+}
 
-## `new`
+App::mimi->new(
+    dsn       => $opts->{'--dsn'},
+    schema    => $opts->{'--schema'},
+    dry_run   => $opts->{'--dry-run'},
+    verbose   => $opts->{'--verbose'},
+    migration => $opts->{'<migration>'}
+)->$command;
 
-Creates new object. Duh.
+__END__
 
-## `fix`
+=pod
 
-Fixes last error migration by changing its status to `success`.
+=head1 NAME
 
-## `migrate`
+mimi - dbi migrations
 
-Finds the last migration number and runs all provided files with greater number.
+=head1 SYNOPSIS
 
-## `set`
+  mimi migrate --dsn=<dsn> --schema=<directory> [--verbose] [--dry-run]
+  mimi setup   --dsn=<dsn> [--verbose] [--dry-run]
+  mimi fix     --dsn=<dsn> [--verbose] [--dry-run]
+  mimi set     --dsn=<dsn> <migration> [--verbose] [--dry-run]
+  mimi -h | --help
 
-Manually set the last migration.
+  --dsn=<dsn>           DBI dsn string, 'dbi:SQLite:database.db' for example
+  --schema=<directory>  Directory with migrations
+  --dry-run             Do nothing, just show what's to be done
+  --verbose             Be verbose
+  -h --help             Show this screen.
 
-## `setup`
+=head1 DESCRIPTION
 
-Creates migration table.
+This is a migration script for small home projects. Despite of being small it's
+still robust. This means that all the precautions are made to not to corrupt
+your data.
 
-# AUTHOR
+=head2 Safety first
 
-Viacheslav Tykhanovskyi, `viacheslav.t@gmail.com`
+Every command has C<verbose> and C<dry-run> flags. Thus it is easy to check
+first what's going to happen.
 
-# COPYRIGHT AND LICENSE
+=head2 Setupping your database
+
+    mimi setup --dsn 'dbi:SQLite:database.db'
+
+This creates C<mimi> table in your database. This table is used as a journal for
+migrations.
+
+=head2 Migrations
+
+    mimi migrate --dsn 'dbi:SQLite:database.db' --schema sql_files/
+
+This will search C<sql_files> for C<*.sql> files, parse their names that usually
+look like C<01add_column.sql>, C<02drop_table.sql> and so on. Then it will try
+to find the last migration and run everything with a bigger number.
+
+=head2 Failures and fixes
+
+Failures do occur. Like you made a mistake in your migration (of course you
+should run them on a local machine first!). C<mimi> will die but remember that
+last migration was with error and won't let you run next migrations dying with:
+
+    Error: Migrations are dirty. Last error was in migration 1:
+
+        DBD::SQLite::db do failed: near "CREAT": syntax error
+
+    After fixing the problem run <fix> command
+
+After fixing the stuff, you either can C<fix> or C<set> the current migration
+number manually:
+
+    mimi fix --dsn '...'
+    mimi set --dsn '...' 123
+
+=head2 Additional checks
+
+You will get descriptive errors when trying to do unexpected stuff, like running
+migrations on a fresh database or supplying a directory without migration files.
+
+=head1 AUTHOR
+
+Viacheslav Tykhanovskyi, C<viacheslav.t@gmail.com>
+
+=head1 COPYRIGHT AND LICENSE
 
 Copyright (C) 2014, Viacheslav Tykhanovskyi
 
@@ -43,3 +110,5 @@ the terms of the Artistic License version 2.0.
 This program is distributed in the hope that it will be useful, but without any
 warranty; without even the implied warranty of merchantability or fitness for
 a particular purpose.
+
+=cut
