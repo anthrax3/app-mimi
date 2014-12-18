@@ -2,21 +2,32 @@
 
 App::mimi - Migrations for small home projects
 
-# SYNOPSIS
-
 # DESCRIPTION
+
+You want to look at `script/mimi` documentation instead. This is just an
+implementation.
 
 # METHODS
 
 ## `new`
 
+Creates new object. Duh.
+
 ## `fix`
+
+Fixes last error migration by changing its status to `success`.
 
 ## `migrate`
 
+Finds the last migration number and runs all provided files with greater number.
+
 ## `set`
 
+Manually set the last migration.
+
 ## `setup`
+
+Creates migration table.
 
 # AUTHOR
 

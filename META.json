@@ -42,6 +42,7 @@
       },
       "runtime" : {
          "requires" : {
+            "DBD::SQLite" : "0",
             "DBI" : "0",
             "Docopt" : "0",
             "perl" : "5.008001"
@@ -56,6 +57,17 @@
       }
    },
    "release_status" : "unstable",
+   "resources" : {
+      "bugtracker" : {
+         "web" : "https://github.com/vti/app-mimi/issues"
+      },
+      "homepage" : "https://github.com/vti/app-mimi",
+      "repository" : {
+         "type" : "git",
+         "url" : "git://github.com/vti/app-mimi.git",
+         "web" : "https://github.com/vti/app-mimi"
+      }
+   },
    "version" : "0.01",
    "x_authority" : "cpan:VTI"
 }
