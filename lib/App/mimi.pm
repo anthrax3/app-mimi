@@ -145,11 +145,13 @@ sub set {
 
     my $db = $self->_build_db_prepared;
 
+    $self->_print("Creating migration $self->{migration}");
+
     $db->create_migration(
         no      => $self->{migration},
         created => time,
         status  => 'success'
-    );
+    ) unless $self->_is_dry_run;
 }
 
 sub _build_db_prepared {

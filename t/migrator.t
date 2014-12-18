@@ -140,6 +140,24 @@ subtest 'throws if error status' => sub {
     like exception { $migrator->migrate }, qr/migrations are dirty/i;
 };
 
+subtest 'creates no migrations when dry-run' => sub {
+    my $dbh = TestDB->setup;
+
+    my $db = App::mimi::db->new(dbh => $dbh);
+    $db->prepare;
+
+    my $dir = tempdir();
+
+    _write_file("$dir/01foo.sql", '');
+
+    my $migrator = _build_migrator(dbh => $dbh, schema => $dir, dry_run => 1);
+    $migrator->migrate;
+
+    my $migration = $db->fetch_last_migration;
+
+    ok !$migration;
+};
+
 subtest 'fixes dirty migration' => sub {
     my $dbh = TestDB->setup;
 
@@ -157,6 +175,30 @@ subtest 'fixes dirty migration' => sub {
     $migrator->fix;
 
     ok !exception { $migrator->migrate };
+
+    my $last_migration = $db->fetch_last_migration;
+    is $last_migration->{status}, 'success';
+};
+
+subtest 'fixes nothing when dry_run' => sub {
+    my $dbh = TestDB->setup;
+
+    my $db = App::mimi::db->new(dbh => $dbh);
+    $db->prepare;
+
+    $db->create_migration(no => 1, created => time, status => 'error');
+
+    my $dir = tempdir();
+
+    _write_file("$dir/02foo.sql");
+
+    my $migrator = _build_migrator(dbh => $dbh, schema => $dir, dry_run => 1);
+
+    $migrator->fix;
+
+    my $last_migration = $db->fetch_last_migration;
+
+    is $last_migration->{status}, 'error';
 };
 
 subtest 'creates last migration manually' => sub {
@@ -173,6 +215,21 @@ subtest 'creates last migration manually' => sub {
 
     is $last_migration->{no},     35;
     is $last_migration->{status}, 'success';
+};
+
+subtest 'does not set migration when dry_run' => sub {
+    my $dbh = TestDB->setup;
+
+    my $db = App::mimi::db->new(dbh => $dbh);
+    $db->prepare;
+
+    my $migrator = _build_migrator(dbh => $dbh, migration => 35, dry_run => 1);
+
+    $migrator->set;
+
+    my $last_migration = $db->fetch_last_migration;
+
+    ok !$last_migration;
 };
 
 sub _write_file {
