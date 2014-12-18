@@ -1,32 +1,3 @@
-#!/usr/bin/env perl
-
-use strict;
-use warnings;
-
-use Carp qw(croak);
-use Docopt;
-use App::mimi;
-
-my $opts = docopt();
-
-my $command;
-for (qw(setup migrate fix set)) {
-    if ($opts->{$_}) {
-        $command = $_;
-        last;
-    }
-}
-
-App::mimi->new(
-    dsn       => $opts->{'--dsn'},
-    schema    => $opts->{'--schema'},
-    dry_run   => $opts->{'--dry-run'},
-    verbose   => $opts->{'--verbose'},
-    migration => $opts->{'<migration>'}
-)->$command;
-
-__END__
-
 =pod
 
 =head1 NAME
