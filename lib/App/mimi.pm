@@ -201,6 +201,10 @@ __END__
 
 App::mimi - Migrations for small home projects
 
+=head1 SYNOPSIS
+
+    mimi --dns 'dbi:SQLite:database.db' migration --schema schema/
+
 =head1 DESCRIPTION
 
 You want to look at C<script/mimi> documentation instead. This is just an

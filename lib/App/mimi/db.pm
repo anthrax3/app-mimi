@@ -91,3 +91,58 @@ sub fetch_last_migration {
 }
 
 1;
+__END__
+=pod
+
+=head1 NAME
+
+App::mimi::db - Database abstraction
+
+=head1 SYNOPSIS
+
+=head1 DESCRIPTION
+
+Basic database abstractions. Just to keep SQL in one file.
+
+=head1 METHODS
+
+=head2 C<new>
+
+Creates new object.
+
+=head2 C<create_migration(%migration)>
+
+Creates migration with provided options.
+
+=head2 C<fetch_last_migration>
+
+Fetches last migration.
+
+=head2 C<fix_last_migration>
+
+Sets last migration.
+
+=head2 C<is_prepared>
+
+Checks if journal is prepared.
+
+=head2 C<prepare>
+
+Creates journal database.
+
+=head1 AUTHOR
+
+Viacheslav Tykhanovskyi, C<viacheslav.t@gmail.com>
+
+=head1 COPYRIGHT AND LICENSE
+
+Copyright (C) 2014, Viacheslav Tykhanovskyi
+
+This program is free software, you can redistribute it and/or modify it under
+the terms of the Artistic License version 2.0.
+
+This program is distributed in the hope that it will be useful, but without any
+warranty; without even the implied warranty of merchantability or fitness for
+a particular purpose.
+
+=cut
