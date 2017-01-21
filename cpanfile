@@ -2,7 +2,9 @@ requires 'perl', '5.008001';
 
 requires 'Docopt';
 requires 'DBI';
-requires 'DBD::SQLite';
+
+recommends 'DBD::SQLite';
+recommends 'DBD::Pg';
 
 on 'test' => sub {
     requires 'Test::More', '0.98';

@@ -11,6 +11,69 @@ use TestDB;
 use App::mimi;
 use App::mimi::db;
 
+subtest 'check: prints correct message when not set up' => sub {
+    my $migrator = _build_migrator();
+
+    open my $fh, '>', \my $stdout;
+    local *STDOUT = $fh;
+
+    $migrator->check;
+
+    like $stdout, qr/Migrations are not installed/;
+};
+
+subtest 'check: prints correct message when no migrations' => sub {
+    my $migrator = _build_migrator();
+
+    open my $fh, '>', \my $stdout;
+    local *STDOUT = $fh;
+
+    $migrator->setup;
+
+    $migrator->check;
+
+    like $stdout, qr/No migrations found/;
+};
+
+subtest 'check: prints correct message when last migration' => sub {
+    my $dir = tempdir();
+
+    _write_file("$dir/01foo.sql", '');
+
+    my $migrator = _build_migrator(schema => $dir);
+
+    open my $fh, '>', \my $stdout;
+    local *STDOUT = $fh;
+
+    $migrator->setup;
+    $migrator->migrate;
+
+    $migrator->check;
+
+    like $stdout, qr/Last migration: 1/;
+};
+
+subtest 'check: prints correct message when last migration with error' => sub {
+    my $dir = tempdir();
+
+    _write_file("$dir/01foo.sql", 'error');
+
+    my $migrator = _build_migrator(schema => $dir);
+
+    open my $fh,  '>', \my $stdout;
+    open my $fh2, '>', \my $stderr;
+    local *STDOUT = $fh;
+    local *STDERR = $fh2;
+
+    $migrator->setup;
+
+    eval { $migrator->migrate; };
+
+    $migrator->check;
+
+    like $stdout, qr/syntax error/;
+};
+
 subtest 'throw when already set up' => sub {
     my $migrator = _build_migrator();
 

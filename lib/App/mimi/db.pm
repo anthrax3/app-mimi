@@ -35,7 +35,10 @@ sub is_prepared {
 sub prepare {
     my $self = shift;
 
-    $self->{dbh}->do(<<'EOF');
+    my $driver = $self->{dbh}->{Driver}->{Name};
+
+    if ($driver eq 'SQLite') {
+        $self->{dbh}->do(<<'EOF');
     CREATE TABLE mimi (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         created INTEGER NOT NULL,
@@ -44,6 +47,17 @@ sub prepare {
         error VARCHAR(255)
     );
 EOF
+    } elsif ($driver eq 'Pg') {
+        $self->{dbh}->do(<<'EOF');
+    CREATE TABLE mimi (
+        id serial PRIMARY KEY,
+        created INTEGER NOT NULL,
+        no INTEGER NOT NULL,
+        status VARCHAR(32) NOT NULL,
+        error VARCHAR(255)
+    );
+EOF
+    }
 }
 
 sub fix_last_migration {
@@ -52,7 +66,7 @@ sub fix_last_migration {
     my $last_migration = $self->fetch_last_migration;
     return unless $last_migration;
 
-    $self->{dbh}->do("UPDATE mimi SET status = 'success' WHERE id=$last_migration->{id}") or die $!;
+    $self->{dbh}->do("UPDATE mimi SET status = 'success', error = '' WHERE id=$last_migration->{id}") or die $!;
 
     return $self;
 }
@@ -136,7 +150,7 @@ Viacheslav Tykhanovskyi, C<viacheslav.t@gmail.com>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2014, Viacheslav Tykhanovskyi
+Copyright (C) 2017, Viacheslav Tykhanovskyi
 
 This program is free software, you can redistribute it and/or modify it under
 the terms of the Artistic License version 2.0.

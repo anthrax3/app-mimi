@@ -23,10 +23,7 @@ sub new {
     $self->{dry_run}   = $params{dry_run};
     $self->{verbose}   = $params{verbose};
     $self->{migration} = $params{migration};
-
-    $self->{dbh} = $params{dbh}
-      || DBI->connect($self->{dsn}, '', '',
-        {RaiseError => 1, PrintError => 0, PrintWarn => 0});
+    $self->{dbh}       = $params{dbh};
 
     return $self;
 }
@@ -123,6 +120,31 @@ sub migrate {
     return $self;
 }
 
+sub check {
+    my $self = shift;
+
+    $self->{verbose} = 1;
+
+    my $db = $self->_build_db;
+
+    if (!$db->is_prepared) {
+        $self->_print('Migrations are not installed');
+    } else {
+        my $last_migration = $db->fetch_last_migration;
+
+        if (!defined $last_migration) {
+            $self->_print('No migrations found');
+        } else {
+            $self->_print(sprintf 'Last migration: %d (%s)',
+                $last_migration->{no}, $last_migration->{status});
+
+            if (my $error = $last_migration->{error}) {
+                $self->_print("\n" . $error);
+            }
+        }
+    }
+}
+
 sub fix {
     my $self = shift;
 
@@ -168,7 +190,15 @@ sub _build_db_prepared {
 sub _build_db {
     my $self = shift;
 
-    return App::mimi::db->new(dbh => $self->{dbh});
+    my $dbh = $self->{dbh};
+
+    if (!$dbh) {
+        $dbh = DBI->connect($self->{dsn}, '', '',
+            {RaiseError => 1, PrintError => 0, PrintWarn => 0});
+        $self->{dbh} = $dbh;
+    }
+
+    return App::mimi::db->new(dbh => $dbh);
 }
 
 sub _print {
@@ -216,6 +246,10 @@ implementation.
 
 Creates new object. Duh.
 
+=head2 C<check>
+
+Prints current state.
+
 =head2 C<fix>
 
 Fixes last error migration by changing its status to C<success>.
@@ -238,7 +272,7 @@ Viacheslav Tykhanovskyi, C<viacheslav.t@gmail.com>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2014, Viacheslav Tykhanovskyi
+Copyright (C) 2017, Viacheslav Tykhanovskyi
 
 This program is free software, you can redistribute it and/or modify it under
 the terms of the Artistic License version 2.0.

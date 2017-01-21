@@ -48,6 +48,7 @@ subtest 'fixes last migration' => sub {
     $db->fix_last_migration;
 
     is $db->fetch_last_migration->{status}, 'success';
+    is $db->fetch_last_migration->{error}, '';
 };
 
 subtest 'returns last migration' => sub {
