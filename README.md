@@ -4,6 +4,7 @@ mimi - dbi migrations
 
 # SYNOPSIS
 
+    mimi check   --dsn=<dsn>
     mimi migrate --dsn=<dsn> --schema=<directory> [--verbose] [--dry-run]
     mimi setup   --dsn=<dsn> [--verbose] [--dry-run]
     mimi fix     --dsn=<dsn> [--verbose] [--dry-run]
@@ -26,6 +27,12 @@ your data.
 
 Every command has `verbose` and `dry-run` flags. Thus it is easy to check
 first what's going to happen.
+
+## Check
+
+    mimi check --dsn 'dbi:SQLite:database.db'
+
+Check what's going on. Are migrations installed? What is the latest migration? Was there an error?
 
 ## Setupping your database
 
