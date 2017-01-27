@@ -4,9 +4,9 @@
       "Viacheslav Tykhanovskyi, C<viacheslav.t@gmail.com>"
    ],
    "dynamic_config" : 0,
-   "generated_by" : "Minilla/v3.0.4, CPAN::Meta::Converter version 2.150010",
+   "generated_by" : "Minilla/v3.0.9, CPAN::Meta::Converter version 2.150005",
    "license" : [
-      "artistic_2"
+      "unknown"
    ],
    "meta-spec" : {
       "url" : "http://search.cpan.org/perldoc?CPAN::Meta::Spec",
@@ -53,6 +53,7 @@
       },
       "test" : {
          "requires" : {
+            "DBD::SQLite" : "0",
             "Test::Fatal" : "0",
             "Test::More" : "0.98",
             "Test::TempDir::Tiny" : "0"
@@ -71,7 +72,7 @@
          "web" : "https://github.com/vti/app-mimi"
       }
    },
-   "version" : "0.02",
+   "version" : "0.03",
    "x_authority" : "cpan:VTI",
    "x_serialization_backend" : "JSON::PP version 2.27300_01"
 }

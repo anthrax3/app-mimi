@@ -2,6 +2,10 @@ Revision history for Perl extension App-mimi
 
 {{$NEXT}}
 
+0.03 2017-01-27T18:48:42Z
+
+    - require DBD::SQLite in tests
+
 0.02 2017-01-22T15:36:57Z
 
     - fatpack version
