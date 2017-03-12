@@ -6,4 +6,6 @@ cpanm -n --pp --installdeps . -L local || exit 1
 cpanm -n --pp Docopt -L local || exit 1
 
 cpanm -n --pp App::FatPacker::Simple -L perl5 || exit 1
-perl -Mlocal::lib=perl5 perl5/bin/fatpack-simple script/mimi || exit 1
+perl -Mlocal::lib=perl5 perl5/bin/fatpack-simple \
+    --exclude DBI,DBD::SQLite,Module::Build,Module::Build::Tiny \
+    script/mimi || exit 1

@@ -10,6 +10,7 @@ use File::Spec;
 use File::Basename ();
 use DBI;
 use App::mimi::db;
+use App::mimi::migration;
 
 sub new {
     my $class = shift;
@@ -76,14 +77,14 @@ sub migrate {
 
         next if $last_migration && $no <= $last_migration->{no};
 
-        my @sql = split /;/, $self->_slurp($file);
+        my $sql = App::mimi::migration->new->parse($file);
 
         push @migrations,
           {
             file => $file,
             no   => $no,
             name => $name,
-            sql  => \@sql
+            sql  => $sql
           };
     }
 
@@ -93,8 +94,16 @@ sub migrate {
             $self->_print("Migrating '$migration->{file}'");
 
             my $e;
+            my $last_query = '';
             if (!$self->_is_dry_run) {
-                eval { $dbh->do($_) for @{$migration->{sql} || []} } or do {
+                eval {
+                    for my $sql (@{$migration->{sql} || []}) {
+
+                        $last_query = $sql;
+
+                        $dbh->do($sql);
+                    }
+                } or do {
                     $e = $@;
 
                     $e =~ s{ at .*? line \d+.$}{};
@@ -107,10 +116,10 @@ sub migrate {
                 no      => $migration->{no},
                 created => time,
                 status  => $e ? 'error' : 'success',
-                error   => $e
+                error   => substr($e, 0, 255)
             ) unless $self->_is_dry_run;
 
-            die "Error: $e\n" if $e;
+            die "Error: $e\nQuery: $last_query\n" if $e;
         }
     }
     else {
@@ -129,12 +138,14 @@ sub check {
 
     if (!$db->is_prepared) {
         $self->_print('Migrations are not installed');
-    } else {
+    }
+    else {
         my $last_migration = $db->fetch_last_migration;
 
         if (!defined $last_migration) {
             $self->_print('No migrations found');
-        } else {
+        }
+        else {
             $self->_print(sprintf 'Last migration: %d (%s)',
                 $last_migration->{no}, $last_migration->{status});
 
@@ -213,15 +224,6 @@ sub _print {
 
 sub _is_dry_run { $_[0]->{dry_run} }
 sub _is_verbose { $_[0]->{verbose} || $_[0]->_is_dry_run }
-
-sub _slurp {
-    my $self = shift;
-    my ($file) = @_;
-
-    open my $fh, '<', $file or croak $!;
-    local $/;
-    <$fh>;
-}
 
 1;
 __END__
