@@ -22,6 +22,7 @@ App::mimi->new(
     schema    => $opts->{'--schema'},
     dry_run   => $opts->{'--dry-run'},
     verbose   => $opts->{'--verbose'},
+    setup     => $opts->{'--setup'},
     migration => $opts->{'<migration>'}
 )->$command;
 
@@ -36,7 +37,7 @@ mimi - dbi migrations
 =head1 SYNOPSIS
 
   mimi check   --dsn=<dsn>
-  mimi migrate --dsn=<dsn> --schema=<directory> [--verbose] [--dry-run]
+  mimi migrate --dsn=<dsn> --schema=<directory> [--setup] [--verbose] [--dry-run]
   mimi setup   --dsn=<dsn> [--verbose] [--dry-run]
   mimi fix     --dsn=<dsn> [--verbose] [--dry-run]
   mimi set     --dsn=<dsn> <migration> [--verbose] [--dry-run]
@@ -79,6 +80,8 @@ migrations.
 This will search C<sql_files> for C<*.sql> files, parse their names that usually
 look like C<01add_column.sql>, C<02drop_table.sql> and so on. Then it will try
 to find the last migration and run everything with a bigger number.
+
+Using C<--setup> flag will setup migrations first if needed.
 
 =head2 Failures and fixes
 

@@ -24,6 +24,7 @@ sub new {
     $self->{dry_run}   = $params{dry_run};
     $self->{verbose}   = $params{verbose};
     $self->{migration} = $params{migration};
+    $self->{setup}     = $params{setup};
     $self->{dbh}       = $params{dbh};
 
     return $self;
@@ -34,7 +35,10 @@ sub setup {
 
     my $db = $self->_build_db;
 
-    die "Error: migrations table already exists\n" if $db->is_prepared;
+    if ($db->is_prepared) {
+        $self->_print("Error: migrations table already exists");
+        return;
+    }
 
     $self->_print("Creating migrations table");
 
@@ -48,6 +52,10 @@ sub migrate {
 
     die "Error: Schema directory is required\n"
       unless $self->{schema} && -d $self->{schema};
+
+    if ($self->{setup}) {
+        $self->setup;
+    }
 
     my @schema_files = glob("$self->{schema}/*.sql");
     die "Error: No schema *.sql files found in '$self->{schema}'\n"
@@ -192,7 +200,7 @@ sub _build_db_prepared {
 
     my $db = $self->_build_db;
 
-    die "Error: Migrations table not found. Run <setup> command first\n"
+    die "Error: Migrations table not found. Run <setup> command first or use --setup flag\n"
       unless $db->is_prepared;
 
     return $db;
