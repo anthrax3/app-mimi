@@ -36,7 +36,7 @@ sub setup {
     my $db = $self->_build_db;
 
     if ($db->is_prepared) {
-        $self->_print("Error: migrations table already exists");
+        $self->_print("Notice: migrations table already exists");
         return;
     }
 

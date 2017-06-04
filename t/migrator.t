@@ -74,14 +74,6 @@ subtest 'check: prints correct message when last migration with error' => sub {
     like $stdout, qr/syntax error/;
 };
 
-subtest 'throw when already set up' => sub {
-    my $migrator = _build_migrator();
-
-    $migrator->setup;
-
-    like exception { $migrator->setup }, qr/migrations table already exists/;
-};
-
 subtest 'throw when schema directory does not exist' => sub {
     my $migrator = _build_migrator(schema => 'unlikely-to-exist');
 
