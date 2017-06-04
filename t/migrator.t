@@ -11,6 +11,49 @@ use TestDB;
 use App::mimi;
 use App::mimi::db;
 
+subtest 'setup: creates initial db' => sub {
+    my $migrator = _build_migrator();
+
+    open my $fh, '>', \my $stdout;
+    local *STDOUT = $fh;
+
+    $migrator->setup;
+
+    $migrator->check;
+
+    like $stdout, qr/No migrations found/;
+};
+
+subtest 'setup: sets initial migration' => sub {
+    my $migrator = _build_migrator(initial_migration => 5);
+
+    open my $fh, '>', \my $stdout;
+    local *STDOUT = $fh;
+
+    $migrator->setup;
+
+    $migrator->check;
+
+    like $stdout, qr/Last migration: 5/;
+};
+
+subtest 'setup: sets initial migration automatically' => sub {
+    my $dir = tempdir();
+
+    _write_file("$dir/42foo.sql", '');
+
+    my $migrator = _build_migrator(initial_migration => 'auto', schema => $dir);
+
+    open my $fh, '>', \my $stdout;
+    local *STDOUT = $fh;
+
+    $migrator->setup;
+
+    $migrator->check;
+
+    like $stdout, qr/Last migration: 42/;
+};
+
 subtest 'check: prints correct message when not set up' => sub {
     my $migrator = _build_migrator();
 

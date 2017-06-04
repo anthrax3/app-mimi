@@ -18,12 +18,14 @@ for (qw(check setup migrate fix set)) {
 }
 
 App::mimi->new(
-    dsn       => $opts->{'--dsn'},
-    schema    => $opts->{'--schema'},
-    dry_run   => $opts->{'--dry-run'},
-    verbose   => $opts->{'--verbose'},
-    setup     => $opts->{'--setup'},
-    migration => $opts->{'<migration>'}
+    dsn               => $opts->{'--dsn'},
+    schema            => $opts->{'--schema'},
+    initial_schema    => $opts->{'--initial-schema'},
+    initial_migration => $opts->{'--initial-migration'},
+    dry_run           => $opts->{'--dry-run'},
+    verbose           => $opts->{'--verbose'},
+    setup             => $opts->{'--setup'},
+    migration         => $opts->{'<migration>'}
 )->$command;
 
 __END__
@@ -38,7 +40,7 @@ mimi - dbi migrations
 
   mimi check   --dsn=<dsn>
   mimi migrate --dsn=<dsn> --schema=<directory> [--setup] [--verbose] [--dry-run]
-  mimi setup   --dsn=<dsn> [--verbose] [--dry-run]
+  mimi setup   --dsn=<dsn> [--initial-schema=<file>] [--initial-migration=<migration>] [--schema=<directory>] [--verbose] [--dry-run]
   mimi fix     --dsn=<dsn> [--verbose] [--dry-run]
   mimi set     --dsn=<dsn> <migration> [--verbose] [--dry-run]
   mimi -h | --help

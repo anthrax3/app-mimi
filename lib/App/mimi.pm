@@ -19,13 +19,15 @@ sub new {
     my $self = {};
     bless $self, $class;
 
-    $self->{dsn}       = $params{dsn};
-    $self->{schema}    = $params{schema};
-    $self->{dry_run}   = $params{dry_run};
-    $self->{verbose}   = $params{verbose};
-    $self->{migration} = $params{migration};
-    $self->{setup}     = $params{setup};
-    $self->{dbh}       = $params{dbh};
+    $self->{dsn}               = $params{dsn};
+    $self->{schema}            = $params{schema};
+    $self->{initial_schema}    = $params{initial_schema};
+    $self->{initial_migration} = $params{initial_migration};
+    $self->{dry_run}           = $params{dry_run};
+    $self->{verbose}           = $params{verbose};
+    $self->{migration}         = $params{migration};
+    $self->{setup}             = $params{setup};
+    $self->{dbh}               = $params{dbh};
 
     return $self;
 }
@@ -43,6 +45,28 @@ sub setup {
     $self->_print("Creating migrations table");
 
     $db->prepare unless $self->_is_dry_run;
+
+    if (my $initial_schema = $self->{initial_schema}) {
+        my $sql = App::mimi::migration->new->parse($initial_schema);
+
+        my $initial_migration = $self->_detect_initial_migration($self->{initial_migration} || 0);
+
+        $self->_print("Initializing with '$initial_schema' ($initial_migration)");
+
+        my $dbh = $self->{dbh};
+        $self->_execute($dbh, $initial_migration, $sql) unless $self->_is_dry_run;
+    }
+    elsif ($self->{initial_migration}) {
+        my $initial_migration = $self->_detect_initial_migration($self->{initial_migration} || 0);
+
+        $self->_print("Setting initial migration ($initial_migration)");
+
+        $db->create_migration(
+            no      => $initial_migration,
+            created => time,
+            status  => 'success'
+        ) unless $self->_is_dry_run;
+    }
 
     return $self;
 }
@@ -101,33 +125,9 @@ sub migrate {
         foreach my $migration (@migrations) {
             $self->_print("Migrating '$migration->{file}'");
 
-            my $e;
-            my $last_query = '';
-            if (!$self->_is_dry_run) {
-                eval {
-                    for my $sql (@{$migration->{sql} || []}) {
-
-                        $last_query = $sql;
-
-                        $dbh->do($sql);
-                    }
-                } or do {
-                    $e = $@;
-
-                    $e =~ s{ at .*? line \d+.$}{};
-                };
-            }
-
             $self->_print("Creating migration: $migration->{no}");
 
-            $db->create_migration(
-                no      => $migration->{no},
-                created => time,
-                status  => $e ? 'error' : 'success',
-                error   => substr($e, 0, 255)
-            ) unless $self->_is_dry_run;
-
-            die "Error: $e\nQuery: $last_query\n" if $e;
+            $self->_execute($dbh, $migration->{no}, $migration->{sql}) unless $self->_is_dry_run;
         }
     }
     else {
@@ -193,6 +193,61 @@ sub set {
         created => time,
         status  => 'success'
     ) unless $self->_is_dry_run;
+}
+
+sub _detect_initial_migration {
+    my $self = shift;
+    my ($initial_migration) = @_;
+
+    if ($initial_migration eq 'auto') {
+        die "Error: --schema is required in auto mode\n" unless $self->{schema} && -d $self->{schema};
+
+        my @schema_files =
+          map { File::Basename::basename($_) } glob("$self->{schema}/*.sql");
+        @schema_files = grep {/^(\d+).*?\.sql$/} @schema_files;
+
+        if (@schema_files) {
+            ($initial_migration) = $schema_files[-1] =~ m/^(\d+)/;
+        }
+        else {
+            die "Error: Can't automatically detect last migration\n";
+        }
+    }
+
+    die "Invalid migration '$initial_migration'\n" unless $initial_migration =~ m/^\d+$/;
+
+    return $initial_migration;
+}
+
+sub _execute {
+    my $self = shift;
+    my ($dbh, $no, $sqls) = @_;
+
+    my $e;
+    my $last_query = '';
+
+    eval {
+        for my $sql (@{$sqls || []}) {
+            $last_query = $sql;
+
+            $dbh->do($sql);
+        }
+    } or do {
+        $e = $@;
+
+        $e =~ s{ at .*? line \d+.$}{};
+    };
+
+    my $db = $self->_build_db;
+
+    $db->create_migration(
+        no      => $no,
+        created => time,
+        status  => $e ? 'error' : 'success',
+        error   => substr($e, 0, 255)
+    );
+
+    die "Error: $e\nQuery: $last_query\n" if $e;
 }
 
 sub _build_db_prepared {
