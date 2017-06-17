@@ -8,7 +8,7 @@ use Test::Fatal;
 
 use File::Temp qw(tempfile);
 
-use App::mimi::migration;
+use App::mimi::migration::sql;
 
 subtest 'throws when cannot open file' => sub {
     my $migration = _build_migration();
@@ -25,7 +25,7 @@ SELECT 1
 FROM table;
 EOF
 
-    my $sql = $migration->parse($filename);
+    my $sql = $migration->parse($filename)->sql;
 
     is_deeply $sql, ["SELECT 1\nFROM table"];
 };
@@ -41,7 +41,7 @@ SELECT 1;
 SELECT 2;
 EOF
 
-    my $sql = $migration->parse($filename);
+    my $sql = $migration->parse($filename)->sql;
 
     is_deeply $sql, ['SELECT 1', 'SELECT 2'];
 };
@@ -68,7 +68,7 @@ $func
 SELECT 2;
 EOF
 
-    my $sql = $migration->parse($filename);
+    my $sql = $migration->parse($filename)->sql;
 
     $func =~ s{;\s+$}{};
 
@@ -90,5 +90,5 @@ sub _write_file {
 }
 
 sub _build_migration {
-    App::mimi::migration->new;
+    App::mimi::migration::sql->new;
 }

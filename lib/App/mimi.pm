@@ -47,14 +47,18 @@ sub setup {
     $db->prepare unless $self->_is_dry_run;
 
     if (my $initial_schema = $self->{initial_schema}) {
-        my $sql = App::mimi::migration->new->parse($initial_schema);
+        my $migration = App::mimi::migration->build('sql')->parse($initial_schema);
 
         my $initial_migration = $self->_detect_initial_migration($self->{initial_migration} || 0);
 
         $self->_print("Initializing with '$initial_schema' ($initial_migration)");
 
+        next if $self->_is_dry_run;
+
         my $dbh = $self->{dbh};
-        $self->_execute($dbh, $initial_migration, $sql) unless $self->_is_dry_run;
+
+        my $result = $migration->execute($dbh);
+        die "Error: $result->{error}\n" unless $result->{success};
     }
     elsif ($self->{initial_migration}) {
         my $initial_migration = $self->_detect_initial_migration($self->{initial_migration} || 0);
@@ -81,8 +85,8 @@ sub migrate {
         $self->setup;
     }
 
-    my @schema_files = glob("$self->{schema}/*.sql");
-    die "Error: No schema *.sql files found in '$self->{schema}'\n"
+    my @schema_files = grep { !/^\./ } glob("$self->{schema}/*");
+    die "Error: No schema files found in '$self->{schema}'\n"
       unless @schema_files;
 
     my $db = $self->_build_db_prepared;
@@ -105,29 +109,41 @@ sub migrate {
         my ($no, $name) = File::Basename::basename($file) =~ /^(\d+)(.*)$/;
         next unless $no && $name;
 
+        my ($ext) = $name =~ m/\.([^\.]+)$/;
+        next unless $ext;
+
         $no = int($no);
 
         next if $last_migration && $no <= $last_migration->{no};
 
-        my $sql = App::mimi::migration->new->parse($file);
+        eval {
+            my $migration = App::mimi::migration->build($ext)->parse($file);
 
-        push @migrations,
-          {
-            file => $file,
-            no   => $no,
-            name => $name,
-            sql  => $sql
-          };
+            push @migrations,
+              {
+                file      => $file,
+                no        => $no,
+                name      => $name,
+                migration => $migration
+              };
+
+            1;
+        } or do {
+            my $e = $@;
+
+            $self->_finalize($no, {success => 0, error => $e});
+        };
     }
 
     if (@migrations) {
-        my $dbh = $self->{dbh};
         foreach my $migration (@migrations) {
             $self->_print("Migrating '$migration->{file}'");
 
-            $self->_print("Creating migration: $migration->{no}");
+            next if $self->_is_dry_run;
 
-            $self->_execute($dbh, $migration->{no}, $migration->{sql}) unless $self->_is_dry_run;
+            my $result = $migration->{migration}->execute($self->{dbh});
+
+            $self->_finalize($migration->{no}, $result);
         }
     }
     else {
@@ -219,35 +235,22 @@ sub _detect_initial_migration {
     return $initial_migration;
 }
 
-sub _execute {
+sub _finalize {
     my $self = shift;
-    my ($dbh, $no, $sqls) = @_;
-
-    my $e;
-    my $last_query = '';
-
-    eval {
-        for my $sql (@{$sqls || []}) {
-            $last_query = $sql;
-
-            $dbh->do($sql);
-        }
-    } or do {
-        $e = $@;
-
-        $e =~ s{ at .*? line \d+.$}{};
-    };
+    my ($no, $result) = @_;
 
     my $db = $self->_build_db;
+
+    $self->_print("Finalizing migration: $no");
 
     $db->create_migration(
         no      => $no,
         created => time,
-        status  => $e ? 'error' : 'success',
-        error   => substr($e, 0, 255)
+        status  => $result->{success} ? 'success' : 'error',
+        error   => substr($result->{error} // '', 0, 255)
     );
 
-    die "Error: $e\nQuery: $last_query\n" if $e;
+    die "Error: $result->{error}\n" unless $result->{success};
 }
 
 sub _build_db_prepared {
@@ -298,7 +301,7 @@ App::mimi - Migrations for small home projects
 
 =head1 SYNOPSIS
 
-    mimi --dns 'dbi:SQLite:database.db' migration --schema schema/
+    mimi --dns 'dbi:SQLite:database.db' migrate --schema schema/
 
 =head1 DESCRIPTION
 

@@ -43,7 +43,7 @@ subtest 'fixes last migration' => sub {
     my $db = _build_db();
 
     $db->prepare;
-    $db->create_migration(no => 1, status => 'error');
+    $db->create_migration(no => 1, status => 'error', error => "can't create");
 
     $db->fix_last_migration;
 

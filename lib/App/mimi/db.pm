@@ -78,9 +78,12 @@ sub create_migration {
     $migration{created} ||= time;
 
     my $columns = join ',', keys %migration;
-    my $values = join ',', map { "'$_'" } values %migration;
+    my $values = join ',', map { '?' } values %migration;
 
-    $self->{dbh}->do("INSERT INTO mimi ($columns) VALUES ($values)") or die $!;
+    my $sth = $self->{dbh}->prepare("INSERT INTO mimi ($columns) VALUES ($values)") or die $!;
+    my $rv = $sth->execute(values %migration);
+
+    die "Can't create migration\n" unless $rv;
 
     return $self;
 }

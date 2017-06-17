@@ -54,6 +54,23 @@ subtest 'setup: sets initial migration automatically' => sub {
     like $stdout, qr/Last migration: 42/;
 };
 
+subtest 'setup: runs initial schema' => sub {
+    my $dir = tempdir();
+
+    _write_file("$dir/schema.sql", 'CREATE TABLE `foo` (`id` INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT)');
+
+    my $dbh = TestDB->setup;
+
+    my $migrator = _build_migrator(dbh => $dbh, initial_schema => "$dir/schema.sql", schema => $dir);
+
+    open my $fh, '>', \my $stdout;
+    local *STDOUT = $fh;
+
+    $migrator->setup;
+
+    ok $dbh->do('SELECT 1 FROM foo LIMIT 1');
+};
+
 subtest 'check: prints correct message when not set up' => sub {
     my $migrator = _build_migrator();
 
@@ -126,7 +143,7 @@ subtest 'throw when schema directory does not exist' => sub {
 subtest 'throw when no schema files found' => sub {
     my $migrator = _build_migrator(schema => tempdir());
 
-    like exception { $migrator->migrate }, qr/no schema \*\.sql files found/i;
+    like exception { $migrator->migrate }, qr/no schema files found/i;
 };
 
 subtest 'throw when database not prepared' => sub {
@@ -236,6 +253,94 @@ subtest 'throws if error status' => sub {
     my $migrator = _build_migrator(dbh => $dbh, schema => $dir);
 
     like exception { $migrator->migrate }, qr/migrations are dirty/i;
+};
+
+subtest 'runs perl' => sub {
+    my $dbh = TestDB->setup;
+
+    my $db = App::mimi::db->new(dbh => $dbh);
+    $db->prepare;
+
+    $db->create_migration(no => 1, created => time, status => 'success');
+
+    my $dir = tempdir();
+
+    _write_file("$dir/02-foo.pm",
+        'package migration::02; use strict; use warnings; sub migrate { $ENV{migrated}++ } 1;');
+
+    my $migrator = _build_migrator(dbh => $dbh, schema => $dir);
+    $migrator->migrate;
+
+    ok $ENV{migrated};
+};
+
+subtest 'saves status when perl fails invalid package' => sub {
+    my $dbh = TestDB->setup;
+
+    my $db = App::mimi::db->new(dbh => $dbh);
+    $db->prepare;
+
+    $db->create_migration(no => 1, created => time, status => 'success');
+
+    my $dir = tempdir();
+
+    _write_file("$dir/02foo.pm", 'asdfsdf');
+
+    my $migrator = _build_migrator(dbh => $dbh, schema => $dir);
+
+    local $SIG{__WARN__} = sub { };
+    ok exception { $migrator->migrate };
+
+    my $migration = $db->fetch_last_migration;
+
+    is $migration->{status},  'error';
+    like $migration->{error}, qr/No package name/;
+};
+
+subtest 'saves status when perl fails compile time' => sub {
+    my $dbh = TestDB->setup;
+
+    my $db = App::mimi::db->new(dbh => $dbh);
+    $db->prepare;
+
+    $db->create_migration(no => 1, created => time, status => 'success');
+
+    my $dir = tempdir();
+
+    _write_file("$dir/02foo.pm", 'package Compile; my $ = ');
+
+    my $migrator = _build_migrator(dbh => $dbh, schema => $dir);
+
+    local $SIG{__WARN__} = sub { };
+    ok exception { $migrator->migrate };
+
+    my $migration = $db->fetch_last_migration;
+
+    is $migration->{status},  'error';
+    like $migration->{error}, qr/compilation failed/i;
+};
+
+subtest 'saves status when perl fails' => sub {
+    my $dbh = TestDB->setup;
+
+    my $db = App::mimi::db->new(dbh => $dbh);
+    $db->prepare;
+
+    $db->create_migration(no => 1, created => time, status => 'success');
+
+    my $dir = tempdir();
+
+    _write_file("$dir/02foo.pm", 'package Runtime; sub migrate { die "here" } 1;');
+
+    my $migrator = _build_migrator(dbh => $dbh, schema => $dir);
+
+    local $SIG{__WARN__} = sub { };
+    ok exception { $migrator->migrate };
+
+    my $migration = $db->fetch_last_migration;
+
+    is $migration->{status},  'error';
+    like $migration->{error}, qr/here at/;
 };
 
 subtest 'creates no migrations when dry-run' => sub {
