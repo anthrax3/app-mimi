@@ -34,8 +34,6 @@ sub execute {
     my $self = shift;
     my ($dbh) = @_;
 
-    my $code = $self->{code};
-
     my $e;
     eval {
         my $file = $self->{file};

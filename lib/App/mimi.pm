@@ -6,6 +6,7 @@ use warnings;
 our $VERSION = '0.03';
 
 use Carp qw(croak);
+use Cwd qw(abs_path);
 use File::Spec;
 use File::Basename ();
 use DBI;
@@ -117,7 +118,7 @@ sub migrate {
         next if $last_migration && $no <= $last_migration->{no};
 
         eval {
-            my $migration = App::mimi::migration->build($ext)->parse($file);
+            my $migration = App::mimi::migration->build($ext)->parse(abs_path($file));
 
             push @migrations,
               {
