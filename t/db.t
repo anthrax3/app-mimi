@@ -70,5 +70,5 @@ subtest 'returns last migration' => sub {
 done_testing;
 
 sub _build_db {
-    App::mimi::db->new(dbh => TestDB->setup);
+    App::mimi::db->new(dbh => TestDB->setup, table => 'mimi');
 }

@@ -12,7 +12,10 @@ sub new {
     my $self = {};
     bless $self, $class;
 
-    $self->{dbh} = $params{dbh} or croak 'dbh required';
+    $self->{dbh}   = $params{dbh}   or croak 'dbh required';
+    $self->{table} = $params{table} or croak 'table required';
+
+    $self->{table} = $self->{dbh}->quote( $self->{dbh} );
 
     $self->{columns} = [qw/no created status error/];
 
@@ -25,7 +28,7 @@ sub is_prepared {
     local $SIG{__WARN__} = sub { };
 
     my $rv;
-    eval { $rv = $self->{dbh}->do('SELECT 1 FROM mimi LIMIT 1') };
+    eval { $rv = $self->{dbh}->do("SELECT 1 FROM $self->{table} LIMIT 1") };
 
     return unless $rv;
 
@@ -37,9 +40,9 @@ sub prepare {
 
     my $driver = $self->{dbh}->{Driver}->{Name};
 
-    if ($driver eq 'SQLite') {
-        $self->{dbh}->do(<<'EOF');
-    CREATE TABLE mimi (
+    if ( $driver eq 'SQLite' ) {
+        $self->{dbh}->do(<<"EOF");
+    CREATE TABLE $self->{table} (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         created INTEGER NOT NULL,
         no INTEGER NOT NULL,
@@ -47,9 +50,10 @@ sub prepare {
         error VARCHAR(255)
     );
 EOF
-    } elsif ($driver eq 'Pg') {
-        $self->{dbh}->do(<<'EOF');
-    CREATE TABLE mimi (
+    }
+    elsif ( $driver eq 'Pg' ) {
+        $self->{dbh}->do(<<"EOF");
+    CREATE TABLE $self->{table} (
         id serial PRIMARY KEY,
         created INTEGER NOT NULL,
         no INTEGER NOT NULL,
@@ -57,6 +61,9 @@ EOF
         error VARCHAR(255)
     );
 EOF
+    }
+    else {
+        die "Unsupported driver $driver\n";
     }
 }
 
@@ -66,7 +73,16 @@ sub fix_last_migration {
     my $last_migration = $self->fetch_last_migration;
     return unless $last_migration;
 
-    $self->{dbh}->do("UPDATE mimi SET status = 'success', error = '' WHERE id=$last_migration->{id}") or die $!;
+    my $sth = $self->{dbh}->prepare(<<"EOF") or die $!;
+        UPDATE $self->{table}
+            SET
+                status = 'success',
+                error = ''
+            WHERE id=?
+EOF
+    my $rv = $sth->execute( $last_migration->{id} );
+
+    die "Can't fix migration\n" unless $rv;
 
     return $self;
 }
@@ -80,8 +96,11 @@ sub create_migration {
     my $columns = join ',', keys %migration;
     my $values = join ',', map { '?' } values %migration;
 
-    my $sth = $self->{dbh}->prepare("INSERT INTO mimi ($columns) VALUES ($values)") or die $!;
-    my $rv = $sth->execute(values %migration);
+    my $sth =
+      $self->{dbh}
+      ->prepare("INSERT INTO $self->{table} ($columns) VALUES ($values)")
+      or die $!;
+    my $rv = $sth->execute( values %migration );
 
     die "Can't create migration\n" unless $rv;
 
@@ -91,9 +110,12 @@ sub create_migration {
 sub fetch_last_migration {
     my $self = shift;
 
-    my $sth =
-      $self->{dbh}->prepare(
-        'SELECT id, no, created, status, error FROM mimi ORDER BY id DESC LIMIT 1');
+    my $sth = $self->{dbh}->prepare(<<"EOF");
+        SELECT id, no, created, status, error
+            FROM $self->{table}
+            ORDER BY id DESC
+            LIMIT 1
+EOF
     my $rv = $sth->execute or die $!;
 
     my $row = $sth->fetchall_arrayref->[0];

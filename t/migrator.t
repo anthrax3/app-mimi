@@ -159,7 +159,7 @@ subtest 'throw when database not prepared' => sub {
 subtest 'create first migration' => sub {
     my $dbh = TestDB->setup;
 
-    my $db = App::mimi::db->new(dbh => $dbh);
+    my $db = _build_db(dbh => $dbh);
     $db->prepare;
 
     my $dir = tempdir();
@@ -178,7 +178,7 @@ subtest 'create first migration' => sub {
 subtest 'create next migration' => sub {
     my $dbh = TestDB->setup;
 
-    my $db = App::mimi::db->new(dbh => $dbh);
+    my $db = _build_db(dbh => $dbh);
     $db->prepare;
 
     $db->create_migration(no => 1, created => time, status => 'success');
@@ -199,7 +199,7 @@ subtest 'create next migration' => sub {
 subtest 'runs sql' => sub {
     my $dbh = TestDB->setup;
 
-    my $db = App::mimi::db->new(dbh => $dbh);
+    my $db = _build_db(dbh => $dbh);
     $db->prepare;
 
     $db->create_migration(no => 1, created => time, status => 'success');
@@ -218,7 +218,7 @@ subtest 'runs sql' => sub {
 subtest 'saves status when sql fails' => sub {
     my $dbh = TestDB->setup;
 
-    my $db = App::mimi::db->new(dbh => $dbh);
+    my $db = _build_db(dbh => $dbh);
     $db->prepare;
 
     $db->create_migration(no => 1, created => time, status => 'success');
@@ -241,7 +241,7 @@ subtest 'saves status when sql fails' => sub {
 subtest 'throws if error status' => sub {
     my $dbh = TestDB->setup;
 
-    my $db = App::mimi::db->new(dbh => $dbh);
+    my $db = _build_db(dbh => $dbh);
     $db->prepare;
 
     $db->create_migration(no => 1, created => time, status => 'error');
@@ -258,7 +258,7 @@ subtest 'throws if error status' => sub {
 subtest 'runs perl' => sub {
     my $dbh = TestDB->setup;
 
-    my $db = App::mimi::db->new(dbh => $dbh);
+    my $db = _build_db(dbh => $dbh);
     $db->prepare;
 
     $db->create_migration(no => 1, created => time, status => 'success');
@@ -277,7 +277,7 @@ subtest 'runs perl' => sub {
 subtest 'saves status when perl fails invalid package' => sub {
     my $dbh = TestDB->setup;
 
-    my $db = App::mimi::db->new(dbh => $dbh);
+    my $db = _build_db(dbh => $dbh);
     $db->prepare;
 
     $db->create_migration(no => 1, created => time, status => 'success');
@@ -300,7 +300,7 @@ subtest 'saves status when perl fails invalid package' => sub {
 subtest 'saves status when perl fails compile time' => sub {
     my $dbh = TestDB->setup;
 
-    my $db = App::mimi::db->new(dbh => $dbh);
+    my $db = _build_db(dbh => $dbh);
     $db->prepare;
 
     $db->create_migration(no => 1, created => time, status => 'success');
@@ -323,7 +323,7 @@ subtest 'saves status when perl fails compile time' => sub {
 subtest 'saves status when perl fails' => sub {
     my $dbh = TestDB->setup;
 
-    my $db = App::mimi::db->new(dbh => $dbh);
+    my $db = _build_db(dbh => $dbh);
     $db->prepare;
 
     $db->create_migration(no => 1, created => time, status => 'success');
@@ -346,7 +346,7 @@ subtest 'saves status when perl fails' => sub {
 subtest 'creates no migrations when dry-run' => sub {
     my $dbh = TestDB->setup;
 
-    my $db = App::mimi::db->new(dbh => $dbh);
+    my $db = _build_db(dbh => $dbh);
     $db->prepare;
 
     my $dir = tempdir();
@@ -364,7 +364,7 @@ subtest 'creates no migrations when dry-run' => sub {
 subtest 'fixes dirty migration' => sub {
     my $dbh = TestDB->setup;
 
-    my $db = App::mimi::db->new(dbh => $dbh);
+    my $db = _build_db(dbh => $dbh);
     $db->prepare;
 
     $db->create_migration(no => 1, created => time, status => 'error');
@@ -386,7 +386,7 @@ subtest 'fixes dirty migration' => sub {
 subtest 'fixes nothing when dry_run' => sub {
     my $dbh = TestDB->setup;
 
-    my $db = App::mimi::db->new(dbh => $dbh);
+    my $db = _build_db(dbh => $dbh);
     $db->prepare;
 
     $db->create_migration(no => 1, created => time, status => 'error');
@@ -407,7 +407,7 @@ subtest 'fixes nothing when dry_run' => sub {
 subtest 'creates last migration manually' => sub {
     my $dbh = TestDB->setup;
 
-    my $db = App::mimi::db->new(dbh => $dbh);
+    my $db = _build_db(dbh => $dbh);
     $db->prepare;
 
     my $migrator = _build_migrator(dbh => $dbh, migration => 35);
@@ -423,7 +423,7 @@ subtest 'creates last migration manually' => sub {
 subtest 'does not set migration when dry_run' => sub {
     my $dbh = TestDB->setup;
 
-    my $db = App::mimi::db->new(dbh => $dbh);
+    my $db = _build_db(dbh => $dbh);
     $db->prepare;
 
     my $migrator = _build_migrator(dbh => $dbh, migration => 35, dry_run => 1);
@@ -435,6 +435,8 @@ subtest 'does not set migration when dry_run' => sub {
     ok !$last_migration;
 };
 
+done_testing;
+
 sub _write_file {
     my ($file, $content) = @_;
 
@@ -443,12 +445,14 @@ sub _write_file {
     close $fh;
 }
 
+sub _build_db {
+    App::mimi::db->new(table => 'mimi', @_);
+}
+
 sub _build_migrator {
     my (%params) = @_;
 
     $params{dbh} ||= TestDB->setup;
 
-    App::mimi->new(%params);
+    App::mimi->new(table => 'mimi', %params);
 }
-
-done_testing;

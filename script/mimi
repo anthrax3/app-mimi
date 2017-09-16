@@ -25,6 +25,7 @@ App::mimi->new(
     dry_run           => $opts->{'--dry-run'},
     verbose           => $opts->{'--verbose'},
     setup             => $opts->{'--setup'},
+    table             => $opts->{'--table'},
     migration         => $opts->{'<migration>'}
 )->$command;
 
@@ -38,14 +39,15 @@ mimi - dbi migrations
 
 =head1 SYNOPSIS
 
-  mimi check   --dsn=<dsn>
-  mimi migrate --dsn=<dsn> --schema=<directory> [--setup] [--verbose] [--dry-run]
-  mimi setup   --dsn=<dsn> [--initial-schema=<file>] [--initial-migration=<migration>] [--schema=<directory>] [--verbose] [--dry-run]
-  mimi fix     --dsn=<dsn> [--verbose] [--dry-run]
-  mimi set     --dsn=<dsn> <migration> [--verbose] [--dry-run]
+  mimi check   --dsn=<dsn> [--table=<table>]
+  mimi migrate --dsn=<dsn> [--table=<table>] --schema=<directory> [--setup] [--verbose] [--dry-run]
+  mimi setup   --dsn=<dsn> [--table=<table>] [--initial-schema=<file>] [--initial-migration=<migration>] [--schema=<directory>] [--verbose] [--dry-run]
+  mimi fix     --dsn=<dsn> [--table=<table>] [--verbose] [--dry-run]
+  mimi set     --dsn=<dsn> [--table=<table>] <migration> [--verbose] [--dry-run]
   mimi -h | --help
 
   --dsn=<dsn>           DBI dsn string, 'dbi:SQLite:database.db' for example
+  --table=<table>       Table for storing migrations, 'mimi' by default
   --schema=<directory>  Directory with migrations
   --dry-run             Do nothing, just show what's to be done
   --verbose             Be verbose

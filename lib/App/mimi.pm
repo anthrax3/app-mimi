@@ -21,6 +21,7 @@ sub new {
     bless $self, $class;
 
     $self->{dsn}               = $params{dsn};
+    $self->{table}             = $params{table} // 'mimi';
     $self->{schema}            = $params{schema};
     $self->{initial_schema}    = $params{initial_schema};
     $self->{initial_migration} = $params{initial_migration};
@@ -276,7 +277,7 @@ sub _build_db {
         $self->{dbh} = $dbh;
     }
 
-    return App::mimi::db->new(dbh => $dbh);
+    return App::mimi::db->new(dbh => $dbh, table => $self->{table});
 }
 
 sub _print {
